@@ -28,14 +28,17 @@ on:
       ReleaseTag:
         required: true
         type: string
-
-
 env:
   REGISTRY: ghcr.io
   ChekinDescription: "Deployment of the ${{inputs.DockerImageName}} Connector."
 
 permissions:
   contents: write  # needed to push commits
+
+
+concurrency:
+  group: deploy-${{ inputs.DockerImageName }}
+  cancel-in-progress: false
 
 jobs:
  edit-image-tag-and-deploy-connectors:
