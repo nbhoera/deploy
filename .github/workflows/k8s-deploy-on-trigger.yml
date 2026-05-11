@@ -60,7 +60,7 @@ jobs:
         run: |
           echo "Dispatching deploy for ${{ matrix.files }}"
           gh workflow run ./.github/workflows/k8s-deploy-connector.yml \
-            -f FilePath="${{ matrix.files }}" \
+            -f FilePath="./.github/workflows/${{ matrix.files }}" \
             -f DockerImageName="${{ inputs.DockerImageName }}" \
             -f ReleaseTag="${{ inputs.ReleaseTag }}"
     env:
