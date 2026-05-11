@@ -44,20 +44,22 @@ jobs:
           FILES=$(printf "%s\n" "$MATCHES" | jq -R -s -c 'split("\n")[:-1]')
           echo "files=$FILES" >> $GITHUB_OUTPUT
   deploy:
-    name : "Deploy to Kubernetes for each matching file."
+    name: "Deploy to Kubernetes for each matching file."
     needs: detect
     if: ${{ needs.detect.outputs.files != '[]' }}
+
     strategy:
       max-parallel: 1
       matrix:
         files: ${{ fromJson(needs.detect.outputs.files) }}
 
-   runs-on: ubuntu-latest
-  steps:
-    - name: Trigger k8s deploy workflow
-      run: |
-        echo "Dispatching deploy for ${{ matrix.files }}"
-        gh workflow run k8s-deploy-connector.yml \
-          -f FilePath="${{ matrix.files }}" \
-          -f DockerImageName="${{ inputs.DockerImageName }}" \
-          -f ReleaseTag="${{ inputs.ReleaseTag }}"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger k8s deploy workflow
+        run: |
+          echo "Dispatching deploy for ${{ matrix.files }}"
+          gh workflow run k8s-deploy-connector.yml \
+            -f FilePath="${{ matrix.files }}" \
+            -f DockerImageName="${{ inputs.DockerImageName }}" \
+            -f ReleaseTag="${{ inputs.ReleaseTag }}"
