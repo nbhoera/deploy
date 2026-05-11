@@ -76,6 +76,7 @@ jobs:
         id: find
         shell: bash
         run: |
+          needs: get_current_tag
           set -euo pipefail
              echo "Update image tag in file : ${{inputs.FilePath}}"
              echo "Current tag: {{ steps.get_current_tag.outputs.currentTag }} with : ${{inputs.ReleaseTag}}"
