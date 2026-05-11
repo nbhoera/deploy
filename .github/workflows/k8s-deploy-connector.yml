@@ -2,7 +2,7 @@ name: k8s-deploy-connector
 
 on:
   # Allow manual triggering of the workflow.
-  workflow_dispatch:
+  workflow_call:
     inputs:
       FilePath:
         description: "The full path to the file to update."
@@ -17,8 +17,8 @@ on:
         required: true
         type: string
 
- workflow_dispatch:
-    inputs:
+  workflow_dispatch:
+     inputs:
       FilePath:
         required: true
         type: string
