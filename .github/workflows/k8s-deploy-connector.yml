@@ -64,7 +64,7 @@ jobs:
              echo "Update image tag in file : ${{inputs.FilePath}}"
              echo "Current tag: { steps.get_current_tag.outputs.currentTag }} with : ${{inputs.ReleaseTag}}"
              # Update the tag to the new release tag using sed.
-             sed -i "s/\(${{inputs.DockerImageName}}:\).*/\1${{inputs.ReleaseTag}}/" "${inputs.FilePath%:}"
+             sed -i "s/\(${{inputs.DockerImageName}}:\).*/\1${{inputs.ReleaseTag}}/" "${inputs.FilePath}"
 
       - name: Commit and push changes.
         shell: bash
