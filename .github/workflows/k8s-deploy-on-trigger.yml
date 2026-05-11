@@ -63,3 +63,5 @@ jobs:
             -f FilePath="${{ matrix.files }}" \
             -f DockerImageName="${{ inputs.DockerImageName }}" \
             -f ReleaseTag="${{ inputs.ReleaseTag }}"
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}            
