@@ -52,6 +52,7 @@ jobs:
           set -euo pipefail
           echo "Extracting current tag for image ${{inputs.DockerImageName}} in file ${{inputs.FilePath}}"
           currentTag=$(git grep -hoP "${{inputs.DockerImageName}}:\K[^ ]+" "${{inputs.FilePath}}")                    
+          echo $currentTag
           echo "currentTag=$currentTag" >> $GITHUB_OUTPUT
 
       # The git grep command searches for the specified Docker image name followed by a colon and captures the tag (version) that follows it.
