@@ -17,6 +17,19 @@ on:
         required: true
         type: string
 
+ workflow_dispatch:
+    inputs:
+      FilePath:
+        required: true
+        type: string
+      DockerImageName:
+        required: true
+        type: string
+      ReleaseTag:
+        required: true
+        type: string
+
+
 env:
   REGISTRY: ghcr.io
   ChekinDescription: "Deployment of the ${{inputs.DockerImageName}} Connector."
