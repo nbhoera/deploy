@@ -16,6 +16,10 @@ on:
         description: "This parameter describes the version/tag used for a release — typically applied to a Docker image or deployment artifact"
         required: true
         type: string
+      #Environment:
+      #  description: "This parameter represents the branch that triggered or should be used by the workflow."
+      #  required: true
+      #  type: string
 
   workflow_dispatch:
      inputs:
@@ -28,21 +32,24 @@ on:
       ReleaseTag:
         required: true
         type: string
+      #Environment:
+      #  required: true
+      #  type: string
+
 env:
   REGISTRY: ghcr.io
-  ChekinDescription: "Deployment of the ${{inputs.DockerImageName}} Connector."
+  ChekinDescription: "Deployment of ${{inputs.DockerImageName}}."
 
 permissions:
   contents: write  # needed to push commits
-
 
 concurrency:
   group: deploy-${{ inputs.DockerImageName }}
   cancel-in-progress: false
 
 jobs:
- edit-image-tag-and-deploy-connectors:
-
+ edit-image-tag-and-commit:
+    if: ${{ inputs.environment != '[]' }}
      # <-- requires approval
      # Approval needed from a user when pr is created main branch.
     environment: tce-dip-prd
@@ -68,34 +75,26 @@ jobs:
           set -euo pipefail
           echo "Extracting current tag for image ${{inputs.DockerImageName}} in file ${{inputs.FilePath}}"
           currentTag=$(git grep -hoP "${{inputs.DockerImageName}}:\K[^ ]+" "${{inputs.FilePath}}")                    
-          echo $currentTag
           echo "currentTag=$currentTag" >> $GITHUB_OUTPUT
 
       # The git grep command searches for the specified Docker image name followed by a colon and captures the tag (version) that follows it.
-      - name: Find matching DockerImageName in the given file and change image tag.
-        id: find
+      - name: Find matching DockerImageName in the given file and change image tag.        
+        id: updadate-image-tag
         shell: bash
         run: |
           set -euo pipefail
-             echo "Update image tag in file : ${{inputs.FilePath}}"
-             echo "Current tag: {{ steps.get_current_tag.outputs.currentTag }} with : ${{inputs.ReleaseTag}}"
+             echo "Update image tag in file [] ${{inputs.FilePath}} ]"
+             echo "Current tag : ${{ steps.get_current_tag.outputs.currentTag }} with : ${{inputs.ReleaseTag}}"
              # Update the tag to the new release tag using sed.
              sed -i "s/\(${{inputs.DockerImageName}}:\).*/\1${{inputs.ReleaseTag}}/" "${{inputs.FilePath}}"
 
       - name: Commit and push changes.
         shell: bash
         run: |
-        
           git add "${{ inputs.FilePath }}"
-          #git status
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git config pull.ff only
           git pull origin main          
           git commit -a -m "${{env.ChekinDescription}}" -m "Updates image tag from \:${{ steps.get_current_tag.outputs.currentTag }} to '${{inputs.ReleaseTag}}.'" || echo "No changes to commit"
-          git push origin main
-
-      #- name : Apply kubernetes deployment.
-      #  shell: bash
-      #  run: |
-      #    kubectl apply -k "$(dirname "${{inputs.FilePath}}")"
+          git push origin main                          
