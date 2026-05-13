@@ -49,7 +49,7 @@ concurrency:
 
 jobs:
  edit-image-tag-and-commit:
-    if: ${{ inputs.environment != '[]' }}
+ 
      # <-- requires approval
      # Approval needed from a user when pr is created main branch.
     environment: tce-dip-prd
