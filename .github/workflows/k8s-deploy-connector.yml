@@ -49,7 +49,7 @@ concurrency:
 
 jobs:
  edit-image-tag-and-commit:
- 
+
      # <-- requires approval
      # Approval needed from a user when pr is created main branch.
     environment: tce-dip-prd
@@ -79,7 +79,7 @@ jobs:
 
       # The git grep command searches for the specified Docker image name followed by a colon and captures the tag (version) that follows it.
       - name: Find matching DockerImageName in the given file and change image tag.        
-        id: updadate-image-tag
+        id: update-image-tag
         shell: bash
         run: |
           set -euo pipefail
@@ -97,4 +97,4 @@ jobs:
           git config pull.ff only
           git pull origin main          
           git commit -a -m "${{env.ChekinDescription}}" -m "Updates image tag from \:${{ steps.get_current_tag.outputs.currentTag }} to '${{inputs.ReleaseTag}}.'" || echo "No changes to commit"
-          git push origin main                          
+          git push origin main
