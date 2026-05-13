@@ -90,10 +90,10 @@ jobs:
           #git status
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git commit -a -m "${{env.ChekinDescription}}" -m "Updates deployment configuration image tag from ${{ steps.get_current_tag.outputs.currentTag }} to '${{inputs.ReleaseTag}}.'" || echo "No changes to commit"
-          git config fetch
           git config pull.ff only
-          git push
+          git pull origin main          
+          git commit -a -m "${{env.ChekinDescription}}" -m "Updates deployment configuration image tag from ${{ steps.get_current_tag.outputs.currentTag }} to '${{inputs.ReleaseTag}}.'" || echo "No changes to commit"
+          git push origin main
 
       #- name : Apply kubernetes deployment.
       #  shell: bash
