@@ -34,7 +34,7 @@ env:
 
 permissions:
   contents: write  # needed to push commits
-  #actions: write  # needed to create PRs
+  actions: write  # needed to create PRs
   pull-requests: write
 
 concurrency:
@@ -100,6 +100,7 @@ jobs:
           fi
 
       - name: Create or update PR
+        id: create_pr
         if: steps.diff.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v7
         with:
@@ -107,16 +108,23 @@ jobs:
           base: "main"
           branch: "automation/gitops-${{ github.workflow }}-${{ github.run_id }}"
           delete-branch: true
-          commit-message: "chore(gitops): update image tag to ${{ inputs.ReleaseTag }}"
-          title: "GitOps: update image tag to ${{ inputs.ReleaseTag }}"
+          commit-message: "GitOps: update image tag to ${{ inputs.ReleaseTag }}"
+          title: "GitOps: Update image tag to ${{ inputs.ReleaseTag }}"
           body: |
             Automated GitOps update.
 
             - File: `${{ inputs.FilePath }}`
-            #- Image: `${{ inputs.image_repo }}:${{ inputs.ReleaseTag }}`
+            - Image: `${{ inputs.ReleaseTag }}`
 
             Created by workflow `${{ github.workflow }}` run `${{ github.run_id }}`.
-          #labels: ${{ inputs.pr_labels }}
+
+
+      - name: Enable auto-merge
+        if: steps.create_pr.outputs.pull-request-number != ''
+        run: |
+          gh pr merge "${{ steps.create_pr.outputs.pull-request-number }}" --auto --squash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: No changes
         if: steps.diff.outputs.changed != 'true'
