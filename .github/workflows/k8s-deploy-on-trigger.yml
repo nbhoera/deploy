@@ -47,17 +47,21 @@ jobs:
 
 
   deploy:
-    name: "Deploy to Kubernetes for each matching file"
+    name: Dispatch deploy per file
     needs: detect
     if: ${{ needs.detect.outputs.files != '[]' }}  
-    strategy:
-      max-parallel: 1
-      matrix:
-          files: ${{ fromJson(needs.detect.outputs.files) }}
-  
-    uses: ./.github/workflows/k8s-deploy-connector.yml
-    with:
-      FilePath: ${{ matrix.files }}
-      DockerImageName: ${{ inputs.DockerImageName }}
-      ReleaseTag: ${{ inputs.ReleaseTag }}
-      BranchName: "tce-dip-${{ inputs.BranchName}}"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+         for file in $(echo '${{ needs.detect.outputs.files }}' | jq -r '.[]'); do
+            echo "Dispatching for $file"
+
+            gh workflow run k8s-deploy-connector.yml \
+            -f FilePath="$file" \
+            -f DockerImageName="${{ inputs.DockerImageName }}" \
+            -f ReleaseTag="${{ inputs.ReleaseTag }}" \
+            -f BranchName="tce-dip-${{ inputs.BranchName }}"
+         done
+    env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
