@@ -59,4 +59,4 @@ jobs:
       FilePath: ${{ matrix.files }}
       DockerImageName: ${{ inputs.DockerImageName }}
       ReleaseTag: ${{ inputs.ReleaseTag }}
-      Environment: ${{ env.environment }}
+      BranchName: "tce-dip-${{ inputs.BranchName}}"
