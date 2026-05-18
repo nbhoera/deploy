@@ -26,8 +26,8 @@ env:
   Environment: ${{ inputs.BranchName == 'develop' && 'acc' || inputs.BranchName == 'main' && 'prd' || inputs.BranchName }}
 
 permissions:
+  contents: write  # needed to push commits
   actions: write
-  contents: write 
 
 jobs:
   detect:
@@ -40,33 +40,23 @@ jobs:
       - id: find
         shell: bash
         run: |
-          set -euo pipefail
           MATCHES=$(git grep -l -F --no-index "${{ inputs.DockerImageName }}:" -- "deployments/dlz/**/${{ env.Environment }}/patch-deployment.yaml" || true)
           FILES=$(printf "%s\n" "$MATCHES" | jq -R -s -c 'split("\n")[:-1]')
           echo "files=$FILES" >> $GITHUB_OUTPUT
 
+
   deploy:
-    name: "Deploy to Kubernetes for each matching file."
+    name: "Deploy to Kubernetes for each matching file"
     needs: detect
-    if: ${{ needs.detect.outputs.files != '[]' }}
-    runs-on: ubuntu-latest  
+    if: ${{ needs.detect.outputs.files != '[]' }}  
     strategy:
       max-parallel: 1
       matrix:
-        files: ${{ fromJson(needs.detect.outputs.files) }}
+          files: ${{ fromJson(needs.detect.outputs.files) }}
   
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-  
-      - name: Trigger k8s deploy workflow
-        run: |
-          echo "Dispatching deploy for ${{ matrix.files }}"
-  
-          gh workflow run k8s-deploy-connector.yml \
-            -R ${{ github.repository }} \
-            -f FilePath="${{ matrix.files }}" \
-            -f DockerImageName="${{ inputs.DockerImageName }}" \
-            -f ReleaseTag="${{ inputs.ReleaseTag }}"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    uses: ./.github/workflows/k8s-deploy-connector.yml
+    with:
+      FilePath: ${{ matrix.files }}
+      DockerImageName: ${{ inputs.DockerImageName }}
+      ReleaseTag: ${{ inputs.ReleaseTag }}
+      Environment: tce-dip-${{ env.Environment }}
