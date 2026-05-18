@@ -28,6 +28,7 @@ env:
 permissions:
   contents: write  # needed to push commits
   actions: write
+  pull-requests: write
 
 jobs:
   detect:
