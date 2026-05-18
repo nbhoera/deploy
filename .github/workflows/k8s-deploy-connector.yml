@@ -16,6 +16,10 @@ on:
         description: "This parameter describes the version/tag used for a release — typically applied to a Docker image or deployment artifact"
         required: true
         type: string
+      Environment:
+        description: "The environment to deploy to."
+        required: true
+        type: string
   workflow_dispatch:
      inputs:
       FilePath:
@@ -46,7 +50,8 @@ jobs:
 
      # <-- requires approval
      # Approval needed from a user when pr is created main branch.
-    environment: tce-dip-prd
+    #environment: tce-dip-prd
+    environment: tce-dip-${{ inputs.Environment }}
     runs-on: ubuntu-latest
 
     steps:
