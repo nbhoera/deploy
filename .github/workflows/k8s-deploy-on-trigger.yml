@@ -57,11 +57,14 @@ jobs:
          for file in $(echo '${{ needs.detect.outputs.files }}' | jq -r '.[]'); do
             echo "Dispatching for $file"
 
-            gh workflow run k8s-deploy-connector.yml \
+            run_id=$(gh workflow run k8s-deploy-connector.yml \
             -f FilePath="$file" \
             -f DockerImageName="${{ inputs.DockerImageName }}" \
             -f ReleaseTag="${{ inputs.ReleaseTag }}" \
-            -f BranchName="tce-dip-${{ inputs.BranchName }}"
+            -f BranchName="tce-dip-${{ inputs.BranchName }}" --json id -q .id)
+            
+            echo "Waiting for run $run_id"
+            gh run watch $run_id --exit-status
          done
     env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
