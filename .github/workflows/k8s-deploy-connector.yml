@@ -70,6 +70,17 @@ jobs:
       - name: Checkout repo.
         uses: actions/checkout@v4
 
+      - name: Create deployment branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+          BRANCH="automation/gitops-${{ github.workflow }}-${{ github.run_id }}"
+      
+          git fetch origin main
+          git checkout -b "$BRANCH" origin/main
+          git push origin "$BRANCH"
+
       - name: Get the current image tag from the file.
         id: get_current_tag
         shell: bash
@@ -130,7 +141,7 @@ jobs:
       - name: Enable auto-merge
         if: steps.create_pr.outputs.pull-request-number != ''
         run: |
-          gh pr merge "${{ steps.create_pr.outputs.pull-request-number }}" no --auto --squash --delete-branch
+          gh pr merge "${{ steps.create_pr.outputs.pull-request-number }}" --auto --squash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
