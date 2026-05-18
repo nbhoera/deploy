@@ -31,6 +31,10 @@ on:
       ReleaseTag:
         required: true
         type: string
+      BranchName:
+        description: "The environment to deploy to."
+        required: true
+        type: string
 
 env:
   REGISTRY: ghcr.io
