@@ -34,7 +34,8 @@ env:
 
 permissions:
   contents: write  # needed to push commits
-  actions: write  # needed to create PRs
+  #actions: write  # needed to create PRs
+  pull-requests: write
 
 concurrency:
   group: deploy-${{ inputs.DockerImageName }}
