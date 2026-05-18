@@ -23,7 +23,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  Environment: ${{ inputs.BranchName == 'develop' && 'acc' || inputs.BranchName == 'main' && 'prd' || inputs.BranchName }}
+  environment: ${{ inputs.BranchName == 'develop' && 'acc' || inputs.BranchName == 'main' && 'prd' || inputs.BranchName }}
 
 permissions:
   contents: write  # needed to push commits
@@ -40,13 +40,13 @@ jobs:
       - id: find
         shell: bash
         run: |
-          MATCHES=$(git grep -l -F --no-index "${{ inputs.DockerImageName }}:" -- "deployments/dlz/**/${{ env.Environment }}/patch-deployment.yaml" || true)
+          MATCHES=$(git grep -l -F --no-index "${{ inputs.DockerImageName }}:" -- "deployments/dlz/**/${{ env.environment }}/patch-deployment.yaml" || true)
           FILES=$(printf "%s\n" "$MATCHES" | jq -R -s -c 'split("\n")[:-1]')
           echo "files=$FILES" >> $GITHUB_OUTPUT
 
 
   deploy:
-    name: "Deploy to Kubernetes for each matching file"
+    #name: "Deploy to Kubernetes for each matching file"
     needs: detect
     if: ${{ needs.detect.outputs.files != '[]' }}  
     strategy:
@@ -59,4 +59,4 @@ jobs:
       FilePath: ${{ matrix.files }}
       DockerImageName: ${{ inputs.DockerImageName }}
       ReleaseTag: ${{ inputs.ReleaseTag }}
-      Environment: tce-dip-${{ env.Environment }}
+      Environment: ${{ env.environment }}
