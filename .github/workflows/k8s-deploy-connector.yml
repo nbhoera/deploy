@@ -52,9 +52,8 @@ concurrency:
 jobs:
  edit-image-tag-and-commit:
 
-     # <-- requires approval
-     # Approval needed from a user when pr is created main branch.
-    #environment: tce-dip-prd
+    # <-- requires approval
+    # Approval needed from a user when pr is created main branch.
     environment: ${{ inputs.BranchName == 'develop' && 'tce-dip-acc' || inputs.BranchName == 'main' && 'tce-dip-prd' || inputs.BranchName }}    
     runs-on: ubuntu-latest
 
@@ -117,8 +116,8 @@ jobs:
           base: "main"
           branch: "automation/gitops-${{ github.workflow }}-${{ github.run_id }}"
           delete-branch: true
-          commit-message: "GitOps: update image tag to ${{ inputs.ReleaseTag }}"
-          title: "GitOps: Update image tag to ${{ inputs.ReleaseTag }}"
+          commit-message: "GitOps: update image tag to ${{ inputs.ReleaseTag }}, file ${{ inputs.FilePath }}"
+          title: "GitOps: Update image tag to ${{ inputs.ReleaseTag }}, file ${{ inputs.FilePath }}"
           body: |
             Automated GitOps update.
 
@@ -131,7 +130,7 @@ jobs:
       - name: Enable auto-merge
         if: steps.create_pr.outputs.pull-request-number != ''
         run: |
-          gh pr merge "${{ steps.create_pr.outputs.pull-request-number }}" --auto --squash
+          gh pr merge "${{ steps.create_pr.outputs.pull-request-number }}" --auto --squash --delete-branch
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
