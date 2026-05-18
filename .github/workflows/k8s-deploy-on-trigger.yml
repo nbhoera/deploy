@@ -57,14 +57,23 @@ jobs:
          for file in $(echo '${{ needs.detect.outputs.files }}' | jq -r '.[]'); do
             echo "Dispatching for $file"
 
-            run_id=$(gh workflow run k8s-deploy-connector.yml \
+            gh workflow run k8s-deploy-connector.yml \
             -f FilePath="$file" \
             -f DockerImageName="${{ inputs.DockerImageName }}" \
             -f ReleaseTag="${{ inputs.ReleaseTag }}" \
-            -f BranchName="tce-dip-${{ inputs.BranchName }}" --json id -q .id)
+            -f BranchName="tce-dip-${{ inputs.BranchName }}"
             
-            echo "Waiting for run $run_id"
-            gh run watch $run_id --exit-status
+            echo "Fetching latest run..."
+
+            run_id=$(gh run list \
+             --workflow=k8s-deploy-connector.yml \
+             --limit 1 \
+             --json databaseId \
+             --jq '.[0].databaseId')
+
+           echo "Waiting for run $run_id"
+           gh run watch $run_id --exit-status           
+
          done
     env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
