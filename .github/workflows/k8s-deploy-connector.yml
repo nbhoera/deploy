@@ -75,7 +75,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          FILE="${{ inputs.file_path }}"
+          FILE="${{ inputs.FilePath }}"
 
           if [ ! -f "$FILE" ]; then
             echo "ERROR: File not found: $FILE"
@@ -105,16 +105,16 @@ jobs:
           base: "main"
           branch: "automation/gitops-${{ github.workflow }}-${{ github.run_id }}"
           delete-branch: true
-          commit-message: "chore(gitops): update image tag to ${{ inputs.new_tag }}"
-          title: "GitOps: update image tag to ${{ inputs.new_tag }}"
+          commit-message: "chore(gitops): update image tag to ${{ inputs.ReleaseTag }}"
+          title: "GitOps: update image tag to ${{ inputs.ReleaseTag }}"
           body: |
             Automated GitOps update.
 
-            - File: `${{ inputs.file_path }}`
-            - Image: `${{ inputs.image_repo }}:${{ inputs.new_tag }}`
+            - File: `${{ inputs.FilePath }}`
+            #- Image: `${{ inputs.image_repo }}:${{ inputs.ReleaseTag }}`
 
             Created by workflow `${{ github.workflow }}` run `${{ github.run_id }}`.
-          labels: ${{ inputs.pr_labels }}
+          #labels: ${{ inputs.pr_labels }}
 
       - name: No changes
         if: steps.diff.outputs.changed != 'true'
