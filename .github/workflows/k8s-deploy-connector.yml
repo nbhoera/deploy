@@ -16,11 +16,6 @@ on:
         description: "This parameter describes the version/tag used for a release — typically applied to a Docker image or deployment artifact"
         required: true
         type: string
-      #Environment:
-      #  description: "This parameter represents the branch that triggered or should be used by the workflow."
-      #  required: true
-      #  type: string
-
   workflow_dispatch:
      inputs:
       FilePath:
@@ -32,9 +27,6 @@ on:
       ReleaseTag:
         required: true
         type: string
-      #Environment:
-      #  required: true
-      #  type: string
 
 env:
   REGISTRY: ghcr.io
@@ -64,7 +56,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Checkout the repository to access the files that need to be updated. 
+      # Checkout the repository to access the files that need to be updated.
       - name: Checkout repo.
         uses: actions/checkout@v4
 
@@ -74,27 +66,56 @@ jobs:
         run: |
           set -euo pipefail
           echo "Extracting current tag for image ${{inputs.DockerImageName}} in file ${{inputs.FilePath}}"
-          currentTag=$(git grep -hoP "${{inputs.DockerImageName}}:\K[^ ]+" "${{inputs.FilePath}}")                    
+          currentTag=$(git grep -hoP "${{inputs.DockerImageName}}:\K[^ ]+" "${{inputs.FilePath}}")
           echo "currentTag=$currentTag" >> $GITHUB_OUTPUT
 
       # The git grep command searches for the specified Docker image name followed by a colon and captures the tag (version) that follows it.
-      - name: Find matching DockerImageName in the given file and change image tag.        
+      - name: Find matching DockerImageName in the given file and change image tag.
         id: update-image-tag
         shell: bash
         run: |
           set -euo pipefail
-             echo "Update image tag in file [] ${{inputs.FilePath}} ]"
-             echo "Current tag : ${{ steps.get_current_tag.outputs.currentTag }} with : ${{inputs.ReleaseTag}}"
-             # Update the tag to the new release tag using sed.
-             sed -i "s/\(${{inputs.DockerImageName}}:\).*/\1${{inputs.ReleaseTag}}/" "${{inputs.FilePath}}"
+          FILE="${{ inputs.file_path }}"
 
-      - name: Commit and push changes.
-        shell: bash
+          if [ ! -f "$FILE" ]; then
+            echo "ERROR: File not found: $FILE"
+            exit 1
+          fi
+
+          echo "Update image tag in file [ ${{inputs.FilePath}} ]"
+          echo "Current tag : ${{ steps.get_current_tag.outputs.currentTag }} with : ${{inputs.ReleaseTag}}"
+          # Update the tag to the new release tag using sed.
+          sed -i "s/\(${{inputs.DockerImageName}}:\).*/\1${{inputs.ReleaseTag}}/" "${{inputs.FilePath}}"
+
+      - name: Detect changes
+        id: diff
         run: |
-          git add "${{ inputs.FilePath }}"
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git config pull.ff only
-          git pull origin main          
-          git commit -a -m "${{env.ChekinDescription}}" -m "Updates image tag from \:${{ steps.get_current_tag.outputs.currentTag }} to '${{inputs.ReleaseTag}}.'" || echo "No changes to commit"
-          git push origin main
+          set -euo pipefail
+          if git status --porcelain | grep -q .; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create or update PR
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          base: "main"
+          branch: "automation/gitops-${{ github.workflow }}-${{ github.run_id }}"
+          delete-branch: true
+          commit-message: "chore(gitops): update image tag to ${{ inputs.new_tag }}"
+          title: "GitOps: update image tag to ${{ inputs.new_tag }}"
+          body: |
+            Automated GitOps update.
+
+            - File: `${{ inputs.file_path }}`
+            - Image: `${{ inputs.image_repo }}:${{ inputs.new_tag }}`
+
+            Created by workflow `${{ github.workflow }}` run `${{ github.run_id }}`.
+          labels: ${{ inputs.pr_labels }}
+
+      - name: No changes
+        if: steps.diff.outputs.changed != 'true'
+        run: echo "No changes detected; skipping PR."
