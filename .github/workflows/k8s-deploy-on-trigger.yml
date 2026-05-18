@@ -46,7 +46,7 @@ jobs:
 
 
   deploy:
-    #name: "Deploy to Kubernetes for each matching file"
+    name: "Deploy to Kubernetes for each matching file"
     needs: detect
     if: ${{ needs.detect.outputs.files != '[]' }}  
     strategy:
