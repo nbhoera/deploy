@@ -77,6 +77,7 @@ jobs:
         uses: actions/checkout@v6
 
  get-current-image-tag:
+    needs: log-in-to-container-registry
     runs-on: ubuntu-latest
     outputs:
       currentTag: ${{ steps.get_current_tag.outputs.currentTag }}
