@@ -62,7 +62,7 @@ jobs:
       currentTag: ${{ steps.get_current_tag.outputs.currentTag }}
     steps:
       - name: Checkout repo.
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Get the current image tag from the file.
         id: get_current_tag
         shell: bash
@@ -87,7 +87,7 @@ jobs:
 
       # Checkout the repository to access the files that need to be updated.
       - name: Checkout repo.
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       #- name: Get the current image tag from the file.
       #  id: get_current_tag
@@ -135,7 +135,7 @@ jobs:
 
       # Checkout the repository to access the files that need to be updated.
       - name: Checkout repo.
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create deployment branch
         run: |
