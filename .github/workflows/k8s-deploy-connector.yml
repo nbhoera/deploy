@@ -90,6 +90,7 @@ jobs:
     steps:
       # Login to github container registry
       - name: Log in to the Container registry
+        if: ${{ inputs.Environment == matrix.env }}
         uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
@@ -143,6 +144,7 @@ jobs:
     steps:
       # Login to github container registry
       - name: Log in to the Container registry
+        if: ${{ inputs.Environment == matrix.env }}
         uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
