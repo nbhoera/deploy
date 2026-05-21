@@ -14,7 +14,7 @@ spec:
     spec:      
       containers:
       - name: tce-dip-connectors-template
-        image: acrtcedipdmznnfukuwjlvqx.azurecr.io/tce-dip/tce-dip-connectors-template:5.0.0
+        image: acrtcedipdmznnfukuwjlvqx.azurecr.io/tce-dip/tce-dip-connectors-template:9.7.0
         envFrom:
         - configMapRef:
             name: dlz99-dp04-cn01-acc
