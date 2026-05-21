@@ -82,11 +82,14 @@ jobs:
  edit-image-tag-and-commit-acc:
     needs: get-current-image-tag
     #if: ${{ inputs.Environment == 'tce-dip-acc' }}   
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest    
+    strategy:
+      matrix:
+        environment: [tce-dip-acc, tce-dip-acc]
+
     steps:
       # Login to github container registry
       - name: Log in to the Container registry
-        if: ${{ inputs.Environment == 'tce-dip-acc' }}   
         uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
@@ -132,10 +135,14 @@ jobs:
     needs: get-current-image-tag
     #if: ${{ inputs.Environment == 'tce-dip-prd' }}
     runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        environment: [tce-dip-acc, tce-dip-prd]
+
     steps:
       # Login to github container registry
       - name: Log in to the Container registry
-        if: ${{ inputs.Environment == 'tce-dip-prd' }}
         uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
