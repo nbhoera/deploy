@@ -117,7 +117,7 @@ jobs:
           git config user.email "actions@github.com"
           git config pull.ff only
           git pull origin main
-          git commit -a -m "${{env.ChekinDescription}}" -m "Updates image tag from : ${{ needs.get-current-image-tag.outputs.currentTag }}" to  '${{inputs.ReleaseTag}}.'" || echo "No changes to commit"
+          git commit -a -m "${{env.ChekinDescription}}" -m "Updates image tag from : ${{ needs.get-current-image-tag.outputs.currentTag }} to : '${{inputs.ReleaseTag}}.'" || echo "No changes to commit"
           git push origin main          
 
  edit-image-tag-and-commit-prd:
