@@ -34,7 +34,10 @@ on:
       Environment:
         description: "The environment to deploy to."
         required: true
-        type: string
+        type: choice
+        options:
+          - tce-dip-acc
+          - tce-dip-prd
 
 env:
   REGISTRY: ghcr.io
@@ -53,8 +56,25 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+ get-current-image-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      currentTag: ${{ steps.get_current_tag.outputs.currentTag }}
+    steps:
+      - name: Checkout repo.
+        uses: actions/checkout@v4
+      - name: Get the current image tag from the file.
+        id: get_current_tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Extracting current tag for image ${{inputs.DockerImageName}} in file ${{inputs.FilePath}}"
+          currentTag=$(git grep -hoP "${{inputs.DockerImageName}}:\K[^ ]+" "${{inputs.FilePath}}")
+          echo "currentTag=$currentTag" >> $GITHUB_OUTPUT
+
  edit-image-tag-and-commit-acc:
     if: ${{ inputs.Environment == 'tce-dip-acc' }}
+    needs: get-current-image-tag
     runs-on: ubuntu-latest
     steps:
       # Login to github container registry
@@ -69,14 +89,14 @@ jobs:
       - name: Checkout repo.
         uses: actions/checkout@v4
 
-      - name: Get the current image tag from the file.
-        id: get_current_tag
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "Extracting current tag for image ${{inputs.DockerImageName}} in file ${{inputs.FilePath}}"
-          currentTag=$(git grep -hoP "${{inputs.DockerImageName}}:\K[^ ]+" "${{inputs.FilePath}}")
-          echo "currentTag=$currentTag" >> $GITHUB_OUTPUT
+      #- name: Get the current image tag from the file.
+      #  id: get_current_tag
+      #  shell: bash
+      #  run: |
+      #    set -euo pipefail
+      #    echo "Extracting current tag for image ${{inputs.DockerImageName}} in file ${{inputs.FilePath}}"
+      #    currentTag=$(git grep -hoP "${{inputs.DockerImageName}}:\K[^ ]+" "${{inputs.FilePath}}")
+      #    echo "currentTag=$currentTag" >> $GITHUB_OUTPUT
 
       # The git grep command searches for the specified Docker image name followed by a colon and captures the tag (version) that follows it.
       - name: Find matching DockerImageName in the given file and change image tag.
@@ -85,7 +105,7 @@ jobs:
         run: |
           set -euo pipefail
              echo "Update image tag in file [ ${{inputs.FilePath}} ]"
-             echo "Current tag : ${{ steps.get_current_tag.outputs.currentTag }} with : ${{inputs.ReleaseTag}}"
+             echo "Current tag : ${{ needs.get-current-image-tag.outputs.currentTag }} with : ${{inputs.ReleaseTag}}"
              # Update the tag to the new release tag using sed.
              sed -i "s/\(${{inputs.DockerImageName}}:\).*/\1${{inputs.ReleaseTag}}/" "${{inputs.FilePath}}"
 
@@ -97,11 +117,12 @@ jobs:
           git config user.email "actions@github.com"
           git config pull.ff only
           git pull origin main
-          git commit -a -m "${{env.ChekinDescription}}" -m "Updates image tag from :${{ steps.get_current_tag.outputs.currentTag }} to  '${{inputs.ReleaseTag}}.'" || echo "No changes to commit"
-          git push origin main
+          git commit -a -m "${{env.ChekinDescription}}" -m "Updates image tag from : ${{ needs.get-current-image-tag.outputs.currentTag }}" to  '${{inputs.ReleaseTag}}.'" || echo "No changes to commit"
+          git push origin main          
 
  edit-image-tag-and-commit-prd:
     if: ${{ inputs.Environment == 'tce-dip-prd' }}
+    needs: get-current-image-tag
     runs-on: ubuntu-latest
     steps:
       # Login to github container registry
@@ -127,17 +148,17 @@ jobs:
           git checkout -b "$BRANCH" origin/main
           git push origin "$BRANCH"
 
-      - name: Get the current image tag from the file.
-        id: get_current_tag
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "Extracting current tag for image ${{inputs.DockerImageName}} in file ${{inputs.FilePath}}"
-          currentTag=$(git grep -hoP "${{inputs.DockerImageName}}:\K[^ ]+" "${{inputs.FilePath}}")
-          echo "currentTag=$currentTag" >> $GITHUB_OUTPUT
+      #- name: Get the current image tag from the file.
+      #  id: get_current_tag
+      #  shell: bash
+      #  run: |
+      #    set -euo pipefail
+      #    echo "Extracting current tag for image ${{inputs.DockerImageName}} in file ${{inputs.FilePath}}"
+      #    currentTag=$(git grep -hoP "${{inputs.DockerImageName}}:\K[^ ]+" "${{inputs.FilePath}}")
+      #    echo "currentTag=$currentTag" >> $GITHUB_OUTPUT
 
       # The git grep command searches for the specified Docker image name followed by a colon and captures the tag (version) that follows it.
-      - name: Find matching DockerImageName in the given file and change image tag.
+      - name: Find matching DockerImageName in the given file and change image tag.        
         id: update-image-tag
         shell: bash
         run: |
@@ -150,7 +171,7 @@ jobs:
           fi
 
           echo "Update image tag in file [ ${{inputs.FilePath}} ]"
-          echo "Current tag : ${{ steps.get_current_tag.outputs.currentTag }} with : ${{inputs.ReleaseTag}}"
+          echo "Current tag : ${{ needs.get-current-image-tag.outputs.currentTag }}" with : ${{inputs.ReleaseTag}}"
           # Update the tag to the new release tag using sed.
           sed -i "s/\(${{inputs.DockerImageName}}:\).*/\1${{inputs.ReleaseTag}}/" "${{inputs.FilePath}}"
 
