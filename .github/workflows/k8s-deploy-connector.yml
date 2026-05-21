@@ -146,7 +146,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}         
 
  edit-image-tag-and-commit-prd:
-    needs: get-current-image-tag
+    needs: [log-in-to-container-registry, get-current-image-tag]
     if: ${{ inputs.Environment == 'tce-dip-prd' }}
     runs-on: ubuntu-latest
     steps:
@@ -158,9 +158,9 @@ jobs:
       #    username: ${{ github.actor }}
       #    password: ${{ secrets.GITHUB_TOKEN }}
       #
-      ## Checkout the repository to access the files that need to be updated.
-      #- name: Checkout repo.
-      #  uses: actions/checkout@v6
+      # Checkout the repository to access the files that need to be updated.
+      - name: Checkout repo.
+        uses: actions/checkout@v6
 
       - name: Create deployment branch
         run: |
