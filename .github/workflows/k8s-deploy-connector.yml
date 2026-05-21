@@ -1,6 +1,7 @@
 name: k8s-deploy-connector
 
 on:
+  # Allow manual triggering of the workflow.
   workflow_call:
     inputs:
       FilePath:
@@ -18,40 +19,33 @@ on:
       Environment:
         description: "The environment to deploy to."
         required: true
-        type: choice
-        options:
-          - tce-dip-acc
-          - tce-dip-prd
+        type: string
   workflow_dispatch:
-    inputs:
+     inputs:
       FilePath:
-        description: "The full path to the file to update."
         required: true
         type: string
       DockerImageName:
-        description: "The name of the Docker image to update."
         required: true
         type: string
       ReleaseTag:
-        description: "This parameter describes the version/tag used for a release — typically applied to a Docker image or deployment artifact"
         required: true
         type: string
       Environment:
         description: "The environment to deploy to."
         required: true
-        type: choice
-        options:
-          - tce-dip-acc
-          - tce-dip-prd
+        type: string
 
 env:
   REGISTRY: ghcr.io
-  CHECKIN_DESCRIPTION: "Deployment of ${{ inputs.DockerImageName }}"
-  ENVIRONMENT: ${{ inputs.Environment }}
+  ChekinDescription: "Deployment of ${{inputs.DockerImageName}}."
+  
+  # Approval needed from a user when pr is created main branch.
+  Environment: ${{ inputs.Environment }}
 
 permissions:
-  contents: write
-  actions: write
+  contents: write  # needed to push commits
+  actions: write  # needed to create PRs
   pull-requests: write
 
 concurrency:
@@ -59,157 +53,136 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+ edit-image-tag-and-commit-acc:
+    if: ${{ env.Environment == 'tce-dip-acc' }}
     runs-on: ubuntu-latest
     steps:
+      # Login to github container registry
       - name: Log in to the Container registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v2
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Checkout repository
+      # Checkout the repository to access the files that need to be updated.
+      - name: Checkout repo.
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
 
-      - name: Configure Git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Validate file exists
-        run: |
-          if [ ! -f "${{ inputs.FilePath }}" ]; then
-            echo "ERROR: File not found: ${{ inputs.FilePath }}"
-            exit 1
-          fi
-
-      - name: Get current image tag
+      - name: Get the current image tag from the file.
         id: get_current_tag
         shell: bash
         run: |
           set -euo pipefail
-          echo "Extracting current tag for image ${{ inputs.DockerImageName }} in file ${{ inputs.FilePath }}"
-          
-          # Use yq for YAML files or grep for other formats
-          if [[ "${{ inputs.FilePath }}" == *.yaml ]] || [[ "${{ inputs.FilePath }}" == *.yml ]]; then
-            currentTag=$(grep -oP "${{ inputs.DockerImageName }}:\K[^\s]+" "${{ inputs.FilePath }}" | head -1)
-          else
-            currentTag=$(git grep -hoP "${{ inputs.DockerImageName }}:\K[^ ]+" "${{ inputs.FilePath }}" | head -1)
-          fi
-          
-          if [ -z "$currentTag" ]; then
-            echo "ERROR: Could not find current tag for ${{ inputs.DockerImageName }}"
-            exit 1
-          fi
-          
+          echo "Extracting current tag for image ${{inputs.DockerImageName}} in file ${{inputs.FilePath}}"
+          currentTag=$(git grep -hoP "${{inputs.DockerImageName}}:\K[^ ]+" "${{inputs.FilePath}}")
           echo "currentTag=$currentTag" >> $GITHUB_OUTPUT
-          echo "Found current tag: $currentTag"
 
-      - name: Check if update is needed
-        id: check_update
-        run: |
-          if [ "${{ steps.get_current_tag.outputs.currentTag }}" == "${{ inputs.ReleaseTag }}" ]; then
-            echo "update_needed=false" >> $GITHUB_OUTPUT
-            echo "Tag is already up to date: ${{ inputs.ReleaseTag }}"
-          else
-            echo "update_needed=true" >> $GITHUB_OUTPUT
-            echo "Update needed: ${{ steps.get_current_tag.outputs.currentTag }} -> ${{ inputs.ReleaseTag }}"
-          fi
-
-      - name: Update image tag
-        if: steps.check_update.outputs.update_needed == 'true'
+      # The git grep command searches for the specified Docker image name followed by a colon and captures the tag (version) that follows it.
+      - name: Find matching DockerImageName in the given file and change image tag.
+        id: update-image-tag
         shell: bash
         run: |
           set -euo pipefail
-          echo "Updating image tag in file: ${{ inputs.FilePath }}"
-          echo "Replacing: ${{ inputs.DockerImageName }}:${{ steps.get_current_tag.outputs.currentTag }}"
-          echo "With: ${{ inputs.DockerImageName }}:${{ inputs.ReleaseTag }}"
-          
-          # Create backup
-          cp "${{ inputs.FilePath }}" "${{ inputs.FilePath }}.bak"
-          
-          # Update the tag
-          sed -i "s|\(${{ inputs.DockerImageName }}:\)[^[:space:]]*|\1${{ inputs.ReleaseTag }}|g" "${{ inputs.FilePath }}"
-          
-          # Verify the change
-          if ! grep -q "${{ inputs.DockerImageName }}:${{ inputs.ReleaseTag }}" "${{ inputs.FilePath }}"; then
-            echo "ERROR: Failed to update image tag"
-            mv "${{ inputs.FilePath }}.bak" "${{ inputs.FilePath }}"
-            exit 1
-          fi
-          
-          rm "${{ inputs.FilePath }}.bak"
+             echo "Update image tag in file [ ${{inputs.FilePath}} ]"
+             echo "Current tag : ${{ steps.get_current_tag.outputs.currentTag }} with : ${{inputs.ReleaseTag}}"
+             # Update the tag to the new release tag using sed.
+             sed -i "s/\(${{inputs.DockerImageName}}:\).*/\1${{inputs.ReleaseTag}}/" "${{inputs.FilePath}}"
 
-      - name: Deploy to Acceptance (Direct commit)
-        if: env.ENVIRONMENT == 'tce-dip-acc' && steps.check_update.outputs.update_needed == 'true'
+      - name: Commit and push changes.
+        shell: bash
         run: |
           git add "${{ inputs.FilePath }}"
-          git commit -m "${{ env.CHECKIN_DESCRIPTION }}" \
-                     -m "Updates image tag from ${{ steps.get_current_tag.outputs.currentTag }} to ${{ inputs.ReleaseTag }}" \
-                     -m "Environment: ${{ env.ENVIRONMENT }}" \
-                     -m "Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          git pull --rebase origin main
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git config pull.ff only
+          git pull origin main
+          git commit -a -m "${{env.ChekinDescription}}" -m "Updates image tag from :${{ steps.get_current_tag.outputs.currentTag }} to  '${{inputs.ReleaseTag}}.'" || echo "No changes to commit"
           git push origin main
 
-      - name: Deploy to Production (Create PR)
-        if: env.ENVIRONMENT == 'tce-dip-prd' && steps.check_update.outputs.update_needed == 'true'
+ edit-image-tag-and-commit-prd:
+    if: ${{ env.Environment == 'tce-dip-prd' }}
+    runs-on: ubuntu-latest
+    steps:
+      # Login to github container registry
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Checkout the repository to access the files that need to be updated.
+      - name: Checkout repo.
+        uses: actions/checkout@v4
+
+      - name: Create deployment branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+          BRANCH="automation/gitops-${{ github.workflow }}-${{ github.run_id }}"
+      
+          git fetch origin main
+          git checkout -b "$BRANCH" origin/main
+          git push origin "$BRANCH"
+
+      - name: Get the current image tag from the file.
+        id: get_current_tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Extracting current tag for image ${{inputs.DockerImageName}} in file ${{inputs.FilePath}}"
+          currentTag=$(git grep -hoP "${{inputs.DockerImageName}}:\K[^ ]+" "${{inputs.FilePath}}")
+          echo "currentTag=$currentTag" >> $GITHUB_OUTPUT
+
+      # The git grep command searches for the specified Docker image name followed by a colon and captures the tag (version) that follows it.
+      - name: Find matching DockerImageName in the given file and change image tag.
+        id: update-image-tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILE="${{ inputs.FilePath }}"
+
+          if [ ! -f "$FILE" ]; then
+            echo "ERROR: File not found: $FILE"
+            exit 1
+          fi
+
+          echo "Update image tag in file [ ${{inputs.FilePath}} ]"
+          echo "Current tag : ${{ steps.get_current_tag.outputs.currentTag }} with : ${{inputs.ReleaseTag}}"
+          # Update the tag to the new release tag using sed.
+          sed -i "s/\(${{inputs.DockerImageName}}:\).*/\1${{inputs.ReleaseTag}}/" "${{inputs.FilePath}}"
+
+      - name: Detect changes
+        id: diff
+        run: |
+          set -euo pipefail
+          if git status --porcelain | grep -q .; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create or update PR
         id: create_pr
+        if: steps.diff.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          base: main
-          branch: automation/gitops-${{ github.run_id }}-${{ inputs.DockerImageName }}
+          base: "main"
+          branch: "automation/gitops-${{ github.workflow }}-${{ github.run_id }}"
           delete-branch: true
-          commit-message: |
-            ${{ env.CHECKIN_DESCRIPTION }}
-            
-            Updates image tag from ${{ steps.get_current_tag.outputs.currentTag }} to ${{ inputs.ReleaseTag }}
-          title: "🚀 GitOps: Deploy ${{ inputs.DockerImageName }}:${{ inputs.ReleaseTag }} to Production"
+          commit-message: ${{env.ChekinDescription}}"
+          title: "GitOps: Update image tag to ${{ inputs.ReleaseTag }}, file ${{ inputs.FilePath }}"
           body: |
-            ## Automated GitOps Deployment
-            
-            ### Changes
-            - **File**: `${{ inputs.FilePath }}`
-            - **Image**: `${{ inputs.DockerImageName }}`
-            - **Current Tag**: `${{ steps.get_current_tag.outputs.currentTag }}`
-            - **New Tag**: `${{ inputs.ReleaseTag }}`
-            - **Environment**: `${{ env.ENVIRONMENT }}`
-            
-            ### Details
-            - Created by workflow: `${{ github.workflow }}`
-            - Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-            - Triggered by: @${{ github.actor }}
-            
-            ---
-            *This PR requires approval before merging to production.*
-          labels: |
-            gitops
-            production
-            automated
+            Automated GitOps update.
 
-      - name: PR created
-        if: env.ENVIRONMENT == 'tce-dip-prd' && steps.create_pr.outputs.pull-request-number
-        run: |
-          echo "✅ Pull request created: ${{ steps.create_pr.outputs.pull-request-url }}"
-          echo "Pull request number: ${{ steps.create_pr.outputs.pull-request-number }}"
+            - File: `${{ inputs.FilePath }}`
+            - Image: `${{ inputs.ReleaseTag }}`
 
-      - name: No update needed
-        if: steps.check_update.outputs.update_needed == 'false'
-        run: |
-          echo "ℹ️ No update needed. Image tag is already set to ${{ inputs.ReleaseTag }}"
+            Created by workflow `${{ github.workflow }}` run `${{ github.run_id }}`
 
-      - name: Deployment summary
-        if: always()
-        run: |
-          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Environment**: ${{ env.ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Image**: ${{ inputs.DockerImageName }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Current Tag**: ${{ steps.get_current_tag.outputs.currentTag }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Target Tag**: ${{ inputs.ReleaseTag }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **File**: ${{ inputs.FilePath }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Update Needed**: ${{ steps.check_update.outputs.update_needed }}" >> $GITHUB_STEP_SUMMARY
+      - name: No changes
+        if: steps.diff.outputs.changed != 'true'
+        run: echo "No changes detected; skipping PR."
