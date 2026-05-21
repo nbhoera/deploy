@@ -54,7 +54,7 @@ concurrency:
 
 jobs:
  edit-image-tag-and-commit-acc:
-    if: ${{ env.Environment == 'tce-dip-acc' }}
+    if: ${{ inputs.Environment == 'tce-dip-acc' }}
     runs-on: ubuntu-latest
     steps:
       # Login to github container registry
@@ -101,7 +101,7 @@ jobs:
           git push origin main
 
  edit-image-tag-and-commit-prd:
-    if: ${{ env.Environment == 'tce-dip-prd' }}
+    if: ${{ inputs.Environment == 'tce-dip-prd' }}
     runs-on: ubuntu-latest
     steps:
       # Login to github container registry
