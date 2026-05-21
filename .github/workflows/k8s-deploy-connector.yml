@@ -73,8 +73,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       
       # Checkout the repository to access the files that need to be updated.
-      - name: Checkout repo.
-        uses: actions/checkout@v6
+      #- name: Checkout repo.
+      #  uses: actions/checkout@v6
 
  get-current-image-tag:
     needs: log-in-to-container-registry
@@ -94,7 +94,7 @@ jobs:
           echo "currentTag=$currentTag" >> $GITHUB_OUTPUT
 
  edit-image-tag-and-commit-acc:
-    needs: [get-current-image-tag, log-in-to-container-registry]
+    needs: [log-in-to-container-registry, get-current-image-tag]
     if: ${{ inputs.Environment == 'tce-dip-acc' }}   
     runs-on: ubuntu-latest
     steps:
@@ -106,9 +106,9 @@ jobs:
       #    username: ${{ github.actor }}
       #    password: ${{ secrets.GITHUB_TOKEN }}
       #
-      ## Checkout the repository to access the files that need to be updated.
-      #- name: Checkout repo.
-      #  uses: actions/checkout@v6
+      # Checkout the repository to access the files that need to be updated.
+      - name: Checkout repo.
+        uses: actions/checkout@v6
 
       #- name: Get the current image tag from the file.
       #  id: get_current_tag
@@ -126,7 +126,7 @@ jobs:
         run: |
           set -euo pipefail
              echo "Update image tag in file [ ${{inputs.FilePath}} ]"
-             #echo "Current tag : ${{ needs.get-current-image-tag.outputs.currentTag }} with : ${{inputs.ReleaseTag}}"
+             echo "Current tag : ${{ needs.get-current-image-tag.outputs.currentTag }} with : ${{inputs.ReleaseTag}}"
              # Update the tag to the new release tag using sed.
              sed -i "s/\(${{inputs.DockerImageName}}:\).*/\1${{inputs.ReleaseTag}}/" "${{inputs.FilePath}}"
         env:
@@ -199,7 +199,7 @@ jobs:
           echo "Current tag : ${{ needs.get-current-image-tag.outputs.currentTag }} with : ${{inputs.ReleaseTag}}"
           # Update the tag to the new release tag using sed.
           sed -i "s/\(${{inputs.DockerImageName}}:\).*/\1${{inputs.ReleaseTag}}/" "${{inputs.FilePath}}"
-
+ 
       - name: Detect changes
         id: diff
         run: |
