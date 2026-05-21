@@ -85,7 +85,7 @@ jobs:
     runs-on: ubuntu-latest    
     strategy:
       matrix:
-        environment: [tce-dip-acc, tce-dip-acc]
+        environment: [tce-dip-acc]
 
     steps:
       # Login to github container registry
@@ -138,7 +138,7 @@ jobs:
     
     strategy:
       matrix:
-        environment: [tce-dip-acc, tce-dip-prd]
+        environment: [tce-dip-prd]
 
     steps:
       # Login to github container registry
