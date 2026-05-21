@@ -94,7 +94,7 @@ jobs:
           echo "currentTag=$currentTag" >> $GITHUB_OUTPUT
 
  edit-image-tag-and-commit-acc:
-    needs: get-current-image-tag
+    needs: [get-current-image-tag, log-in-to-container-registry]
     if: ${{ inputs.Environment == 'tce-dip-acc' }}   
     runs-on: ubuntu-latest
     steps:
