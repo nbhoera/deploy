@@ -22,12 +22,12 @@ on:
         type: string
   workflow_dispatch:
      inputs:     
-      target:
-        type: choice
-        description: "What to run?"
-        options:
-          - edit-image-tag-and-commit-acc
-          - edit-image-tag-and-commit-prd
+      #target:
+      #  type: choice
+      #  description: "What to run?"
+      #  options:
+      #    - edit-image-tag-and-commit-acc
+      #    - edit-image-tag-and-commit-prd
       FilePath:
         required: true
         type: string
@@ -229,6 +229,10 @@ jobs:
 
             Created by workflow `${{ github.workflow }}` run `${{ github.run_id }}`
 
-      - name: No changes
-        if: steps.diff.outputs.changed != 'true'
-        run: echo "No changes detected; skipping PR."
+      - name: Check if changes were made
+        run: |
+            if [[ "${{ steps.diff.outputs.changed }}" == "true" ]]; then
+              echo "Changes are made, PR is created."
+            else
+              echo "No changes detected."
+            fi
