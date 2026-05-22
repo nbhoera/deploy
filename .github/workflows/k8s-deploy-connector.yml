@@ -173,7 +173,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           base: "main"
-          branch: "automation/Deploy of ${{inputs.DockerImageName}}-run_id:-${{ github.run_id }}"
+          branch: "automation/Deploy-of-${{inputs.DockerImageName}}-run_id-${{ github.run_id }}"
           delete-branch: true
           commit-message: ${{env.ChekinDescription}}"
           title: "Deploy ${{inputs.DockerImageName}}, image tag  ${{ inputs.ReleaseTag }}."
