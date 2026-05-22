@@ -223,7 +223,7 @@ jobs:
           commit-message: ${{env.ChekinDescription}}"
           #title: "GitOps: Update image tag to ${{ inputs.ReleaseTag }}, file ${{ inputs.FilePath }}"
           #title: "Deploy ${{inputs.DockerImageName}} to ${{ inputs.ReleaseTag }}"
-          title: "Update ${{inputs.DockerImageName}}, image tag to  ${{ inputs.ReleaseTag }}. Enviroment ${{DeploymentTarget}}"
+          title: "Update ${{inputs.DockerImageName}}, image tag to  ${{ inputs.ReleaseTag }}. Enviroment ${{ env.DeploymentTarget }}"
           #"$path" | cut -d'/' -f3,4,5,7
           body: |
             Automated GitOps update.
