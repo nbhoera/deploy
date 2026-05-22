@@ -48,9 +48,10 @@ on:
 env:
   REGISTRY: ghcr.io
   ChekinDescription: "Deployment of ${{inputs.DockerImageName}}."
+  DeploymentTarget : ${{ inputs.FilePath }} | cut -d'/' -f3,4,5,7 
   
   # Approval needed from a user when pr is created main branch.
-  Environment: ${{ inputs.Environment }}
+  Environment: ${{ inputs.Environment }} 
 
 permissions:
   contents: write  # needed to push commits
@@ -220,7 +221,10 @@ jobs:
           branch: "automation/gitops-${{ github.workflow }}-${{ github.run_id }}"
           delete-branch: true
           commit-message: ${{env.ChekinDescription}}"
-          title: "GitOps: Update image tag to ${{ inputs.ReleaseTag }}, file ${{ inputs.FilePath }}"
+          #title: "GitOps: Update image tag to ${{ inputs.ReleaseTag }}, file ${{ inputs.FilePath }}"
+          #title: "Deploy ${{inputs.DockerImageName}} to ${{ inputs.ReleaseTag }}"
+          title: "Update ${{inputs.DockerImageName}}, image tag to  ${{ inputs.ReleaseTag }}. Enviroment ${{DeploymentTarget}}"
+          #"$path" | cut -d'/' -f3,4,5,7
           body: |
             Automated GitOps update.
 
