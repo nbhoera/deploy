@@ -23,12 +23,13 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  environment: ${{ inputs.BranchName == 'develop' && 'acc' || inputs.BranchName == 'main' && 'prd' || inputs.BranchName }}
+  Overlay: ${{ inputs.BranchName == 'develop' && 'acc' || inputs.BranchName == 'main' && 'prd' || inputs.BranchName }}
 
 permissions:
   contents: write  # needed to push commits
   actions: write
   pull-requests: write
+  checks: write 
 
 jobs:
   detect:
@@ -37,22 +38,21 @@ jobs:
     outputs:
       files: ${{ steps.find.outputs.files }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - id: find
         shell: bash
         run: |
-          MATCHES=$(git grep -l -F --no-index "${{ inputs.DockerImageName }}:" -- "deployments/dlz/**/${{ env.environment }}/patch-deployment.yaml" || true)
+          MATCHES=$(git grep -l -F --no-index "${{ inputs.DockerImageName }}:" -- "deployments/dlz/**/${{ env.Overlay }}/patch-deployment.yaml" || true)
           FILES=$(printf "%s\n" "$MATCHES" | jq -R -s -c 'split("\n")[:-1]')
           echo "files=$FILES" >> $GITHUB_OUTPUT
-
 
   deploy:
     name: Dispatch deploy per file
     needs: detect
-    if: ${{ needs.detect.outputs.files != '[]' }}  
+    if: ${{ needs.detect.outputs.files != '[]' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: |
          for file in $(echo '${{ needs.detect.outputs.files }}' | jq -r '.[]'); do
             echo "Dispatching for $file"
@@ -61,10 +61,10 @@ jobs:
             -f FilePath="$file" \
             -f DockerImageName="${{ inputs.DockerImageName }}" \
             -f ReleaseTag="${{ inputs.ReleaseTag }}" \
-            -f BranchName="tce-dip-${{ inputs.BranchName }}"
+            -f Environment="tce-dip-${{ env.Overlay }}"
             
             echo "Fetching latest run..."
-
+            
             run_id=$(gh run list \
              --workflow=k8s-deploy-connector.yml \
              --limit 1 \
@@ -72,7 +72,7 @@ jobs:
              --jq '.[0].databaseId')
 
            echo "Waiting for run $run_id"
-           gh run watch $run_id --exit-status           
+           gh run watch $run_id --exit-status
 
          done
     env:
