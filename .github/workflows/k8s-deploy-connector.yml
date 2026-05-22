@@ -60,7 +60,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Log in to the Container registry
-        uses: docker/login-action@v4
+        uses: docker/login-action@v6
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -83,7 +83,7 @@ jobs:
           currentTag=$(git grep -hoP "${{inputs.DockerImageName}}:\K[^ ]+" "${{inputs.FilePath}}")
           echo "currentTag=$currentTag" >> $GITHUB_OUTPUT
 
- edit-image-tag-and-commit-acc:
+ deployment-acc:
     needs: [log-in-to-container-registry, get-current-image-tag]
     if: ${{ inputs.Environment == 'tce-dip-acc' }}   
     runs-on: ubuntu-latest
@@ -118,7 +118,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
- prepare-deployment-production:
+ deployment-prd:
  #edit-image-tag-and-commit-prd:
     needs: [log-in-to-container-registry, get-current-image-tag]
     if: ${{ inputs.Environment == 'tce-dip-prd' }}
@@ -174,12 +174,9 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           base: "main"
-          #branch: "automation/gitops-${{ github.workflow }}-${{ github.run_id }}"
           branch: "automation/Deploy of ${{inputs.DockerImageName}}-run_id:-${{ github.run_id }}"
           delete-branch: true
           commit-message: ${{env.ChekinDescription}}"
-          #title: "GitOps: Update image tag to ${{ inputs.ReleaseTag }}, file ${{ inputs.FilePath }}"
-          #title: "Deploy ${{inputs.DockerImageName}} to ${{ inputs.ReleaseTag }}"
           title: "Deploy ${{inputs.DockerImageName}}, image tag  ${{ inputs.ReleaseTag }}."
 
           body: |
