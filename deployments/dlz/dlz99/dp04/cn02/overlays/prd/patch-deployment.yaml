@@ -1,0 +1,24 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:  
+  name: dlz99-dp04-cn01
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dlz99-dp04-cn01-acc
+  template:
+    metadata:
+      labels:
+        app: dlz99-dp04-cn01-acc
+    spec:      
+      containers:
+      - name: tce-dip-connectors-template
+        image: acrtcedipdmznnfukuwjlvqx.azurecr.io/tce-dip/tce-dip-connectors-template:9.8.0
+        envFrom:
+        - configMapRef:
+            name: dlz99-dp04-cn01-acc
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          value: "acc"  
