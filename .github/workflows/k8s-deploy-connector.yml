@@ -41,7 +41,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  ChekinDescription: "Deployment of ${{inputs.DockerImageName}}."
+  CheckinDescription: "Deployment of ${{inputs.DockerImageName}}."
 
   # Approval needed from a user when pr is created main branch.
   Environment: ${{ inputs.Environment }} 
@@ -83,44 +83,9 @@ jobs:
           currentTag=$(git grep -hoP "${{inputs.DockerImageName}}:\K[^ ]+" "${{inputs.FilePath}}")
           echo "currentTag=$currentTag" >> $GITHUB_OUTPUT
 
- deployment-acc:
+ update-image-tag-and-create-pull-request:
     needs: [log-in-to-container-registry, get-current-image-tag]
-    if: ${{ inputs.Environment == 'tce-dip-acc' }}   
-    runs-on: ubuntu-latest
-    steps:
-      # Checkout the repository to access the files that need to be updated.
-      - name: Checkout repo.
-        uses: actions/checkout@v6
-
-      # The git grep command searches for the specified Docker image name followed by a colon and captures the tag (version) that follows it.
-      - name: Find matching DockerImageName in the given file and change image tag.
-        id: update-image-tag
-        shell: bash
-        run: |
-          set -euo pipefail
-             echo "Update image tag in file [ ${{inputs.FilePath}} ]"
-             echo "Current tag : ${{ needs.get-current-image-tag.outputs.currentTag }} with : ${{inputs.ReleaseTag}}"
-             # Update the tag to the new release tag using sed.
-             sed -i "s/\(${{inputs.DockerImageName}}:\).*/\1${{inputs.ReleaseTag}}/" "${{inputs.FilePath}}"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Commit and push changes.
-        shell: bash
-        run: |
-          git add "${{ inputs.FilePath }}"
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git config pull.ff only
-          git pull origin main
-          git commit -a -m "${{env.ChekinDescription}}" -m "Updates image tag from : ${{ needs.get-current-image-tag.outputs.currentTag }} to : '${{inputs.ReleaseTag}}.'" || echo "No changes to commit"
-          git push origin main
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
- deployment-prd: 
-    needs: [log-in-to-container-registry, get-current-image-tag]
-    if: ${{ inputs.Environment == 'tce-dip-prd' }}
+    environment: ${{ inputs.Environment }}
     runs-on: ubuntu-latest
     steps:
       # Checkout the repository to access the files that need to be updated.
@@ -169,13 +134,13 @@ jobs:
       - name: Create or update PR
         id: create_pr
         if: steps.diff.outputs.changed == 'true'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           base: "main"
           branch: "automation/Deploy-of-${{inputs.DockerImageName}}-run_id-${{ github.run_id }}"
           delete-branch: true
-          commit-message: ${{env.ChekinDescription}}"
+          commit-message: ${{env.CheckinDescription}}"
           title: "Deploy ${{inputs.DockerImageName}}, image tag  ${{ inputs.ReleaseTag }}."
 
           body: |
