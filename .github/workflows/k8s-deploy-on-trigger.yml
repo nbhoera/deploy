@@ -26,7 +26,12 @@ env:
   BRANCH_NAME: ${{ inputs.BranchName || github.event.client_payload.BranchName }}
   IMAGE_NAME:  ${{ inputs.DockerImageName || github.event.client_payload.DockerImageName }}
   RELEASE_TAG: ${{ inputs.ReleaseTag || github.event.client_payload.ReleaseTag }}
-  Overlay: ${{ inputs.BranchName || github.event.client_payload.BranchName == 'develop' && 'acc' || inputs.BranchName || github.event.client_payload.BranchName == 'main' && 'prd' }}
+  
+  Overlay: ${{ 
+   contains('develop', inputs.BranchName || github.event.client_payload.BranchName) && 'acc' ||
+   contains('main', inputs.BranchName || github.event.client_payload.BranchName) && 'prd'
+   }}
+
 
 permissions:
   contents: write  # needed to push commits
